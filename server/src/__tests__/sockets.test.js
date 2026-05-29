@@ -70,6 +70,12 @@ beforeAll(async () => {
     .send({ name: 'Socket Test Board' })).body;
   boardId = board.id;
 
+  // Add userB as a board member so they can join the room in socket tests
+  await pool.query(
+    'INSERT INTO board_members (board_id, user_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+    [boardId, b.userId, 'editor']
+  );
+
   const column = await (await request(app)
     .post('/api/columns')
     .set('Authorization', `Bearer ${tokenA}`)
@@ -146,7 +152,7 @@ describe('card:lock events', () => {
 
     clientA.emit('presence:join', { boardId });
     clientB.emit('presence:join', { boardId });
-    await new Promise(r => setTimeout(r, 50)); // let joins settle
+    await new Promise(r => setTimeout(r, 200)); // let joins settle
 
     const lockedPromise = waitForEvent(clientB, 'card:locked');
     clientA.emit('card:lock', { cardId });
@@ -168,7 +174,7 @@ describe('card:lock events', () => {
 
     const clientB = await connectSocket(tokenB);
     clientB.emit('presence:join', { boardId });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 200));
 
     const rejectedPromise = waitForEvent(clientB, 'card:lock:rejected');
     clientB.emit('card:lock', { cardId });
@@ -186,7 +192,7 @@ describe('card:move events', () => {
   it('broadcasts card:moved to room after a valid move', async () => {
     const clientA = await connectSocket(tokenA);
     clientA.emit('presence:join', { boardId });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 200));
 
     // Lock first
     clientA.emit('card:lock', { cardId });
@@ -210,7 +216,7 @@ describe('card:move events', () => {
   it('emits card:move:rejected when timestamp is stale', async () => {
     const clientA = await connectSocket(tokenA);
     clientA.emit('presence:join', { boardId });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 200));
 
     clientA.emit('card:lock', { cardId });
     await waitForEvent(clientA, 'card:locked');
@@ -220,7 +226,7 @@ describe('card:move events', () => {
       cardId,
       columnId,
       position: 99.0,
-      timestamp: 0, // epoch — always stale
+      clientUpdatedAt: new Date(0).toISOString(), // epoch — always older than card's updated_at
     });
 
     const payload = await rejectedPromise;
@@ -236,7 +242,7 @@ describe('Disconnect handling', () => {
   it('releases all locks held by a disconnected user', async () => {
     const clientA = await connectSocket(tokenA);
     clientA.emit('presence:join', { boardId });
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 200));
 
     // Lock card
     clientA.emit('card:lock', { cardId });

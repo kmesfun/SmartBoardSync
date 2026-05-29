@@ -32,8 +32,10 @@ export function getSocket() {
 
 export function reconnectWithToken() {
   const s = createSocket();
+  // Always disconnect first so the server re-runs the auth handshake with the new token.
+  if (s.connected) s.disconnect();
   s.auth = { token: typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null };
-  if (!s.connected) s.connect();
+  s.connect();
 }
 
 export function disconnectSocket() {

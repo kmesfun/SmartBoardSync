@@ -47,6 +47,15 @@ const deleteCard = (cardId) =>
 const getCardById = (cardId) =>
   query('SELECT * FROM cards WHERE id = $1', [cardId]);
 
+// Returns card with its parent board_id for authorization checks
+const getCardWithBoard = (cardId) =>
+  query(
+    `SELECT ca.*, c.board_id FROM cards ca
+     JOIN columns c ON ca.column_id = c.id
+     WHERE ca.id = $1`,
+    [cardId]
+  );
+
 const lockCard = (cardId, userId) =>
   query(
     'UPDATE cards SET locked_by = $1, locked_at = NOW() WHERE id = $2 AND locked_by IS NULL RETURNING *',
@@ -85,6 +94,6 @@ const getCardsByBoard = async (boardId) =>
   );
 
 module.exports = {
-  createCard, updateCard, moveCard, deleteCard, getCardById,
+  createCard, updateCard, moveCard, deleteCard, getCardById, getCardWithBoard,
   lockCard, unlockCard, releaseAllLocksByUser, rebalanceColumn, getCardsByBoard,
 };

@@ -10,15 +10,20 @@ const useBoardStore = create((set, get) => ({
 
   moveCard: (cardId, toColumnId, position) => {
     set((state) => {
-      const columns = state.columns.map((col) => {
-        const cards = col.cards.filter((c) => c.id !== cardId);
-        return { ...col, cards };
-      });
       const card = state.columns
         .flatMap((c) => c.cards)
         .find((c) => c.id === cardId);
-      if (!card) return { columns };
-      const updated = columns.map((col) => {
+      if (!card) return {};
+
+      // Guard: if the target column no longer exists (deleted by another user),
+      // leave state untouched rather than removing the card from the board.
+      if (!state.columns.some((col) => col.id === toColumnId)) return {};
+
+      const stripped = state.columns.map((col) => ({
+        ...col,
+        cards: col.cards.filter((c) => c.id !== cardId),
+      }));
+      const updated = stripped.map((col) => {
         if (col.id === toColumnId) {
           const newCards = [...col.cards, { ...card, column_id: toColumnId, position }]
             .sort((a, b) => a.position - b.position);

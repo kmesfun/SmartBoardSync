@@ -3,7 +3,6 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useBoardStore } from '../store/boardStore';
 import useAuthStore from '../store/authStore';
-import { getSocket } from '../lib/socket';
 import api from '../lib/api';
 
 const POINTS = [1, 2, 3, 5, 8, 13];
@@ -16,6 +15,7 @@ export function Card({ card, isLocked = false, lockedBy = null }) {
   const [showPointPicker, setShowPointPicker] = useState(false);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(card.title);
+  const [titleError, setTitleError] = useState(false);
 
   const isLockedByOther = isLocked && lockedBy?.id !== user?.id;
 
@@ -30,9 +30,8 @@ export function Card({ card, isLocked = false, lockedBy = null }) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const handleMouseDown = () => {
-    try { getSocket().emit('card:lock', { cardId: card.id }); } catch {}
-  };
+  // Lock is now emitted in Board's handleDragStart so it only fires when a real drag begins,
+  // not on every mousedown (which includes clicks and right-clicks).
 
   const handlePointClick = async (points) => {
     const newPoints = card.points === points ? null : points;
@@ -48,7 +47,12 @@ export function Card({ card, isLocked = false, lockedBy = null }) {
       try {
         const res = await api.patch(`/cards/${card.id}`, { title });
         if (typeof updateCardInStore === 'function') updateCardInStore(res.data);
-      } catch {}
+      } catch {
+        // Revert optimistic title and show brief error indicator
+        setTitle(card.title);
+        setTitleError(true);
+        setTimeout(() => setTitleError(false), 2000);
+      }
     }
     setEditing(false);
   };
@@ -60,11 +64,10 @@ export function Card({ card, isLocked = false, lockedBy = null }) {
       data-locked={String(!!isLockedByOther)}
       style={style}
       className={`relative bg-white rounded-lg shadow-sm border px-3 py-2 cursor-grab select-none
-        ${isLockedByOther ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-blue-300'}
+        ${isLockedByOther ? 'border-red-300 bg-red-50' : titleError ? 'border-yellow-400' : 'border-gray-200 hover:border-blue-300'}
         ${isDragging ? 'shadow-md' : ''}`}
       {...attributes}
       {...listeners}
-      onMouseDown={handleMouseDown}
     >
       {isLockedByOther && (
         <div
@@ -133,6 +136,10 @@ export function Card({ card, isLocked = false, lockedBy = null }) {
 
       {card.description && (
         <p className="text-xs text-gray-500 mt-1 line-clamp-2">{card.description}</p>
+      )}
+
+      {titleError && (
+        <p className="text-xs text-yellow-600 mt-1">Failed to save — please try again</p>
       )}
     </div>
   );

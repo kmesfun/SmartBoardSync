@@ -25,7 +25,8 @@ router.post('/register', async (req, res) => {
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Email already in use' });
     }
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -47,7 +48,8 @@ router.post('/login', async (req, res) => {
     );
     res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
