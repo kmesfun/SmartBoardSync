@@ -1,17 +1,21 @@
 const router = require('express').Router();
 const Anthropic = require('@anthropic-ai/sdk');
 const { verifyToken } = require('../middleware/auth');
-const { getBoardById, getBoardWithColumns } = require('../db/queries/boards');
+const { getBoardById, getBoardWithColumns, isBoardMember } = require('../db/queries/boards');
 
 router.use(verifyToken);
 
 const client = new Anthropic();
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-5';
 
 router.get('/:boardId', async (req, res) => {
   try {
     const boardResult = await getBoardById(req.params.boardId);
     const board = boardResult.rows[0];
     if (!board) return res.status(404).json({ error: 'Not found' });
+
+    const membership = await isBoardMember(req.params.boardId, req.user.id);
+    if (!membership.rows[0]) return res.status(403).json({ error: 'Forbidden' });
 
     const columns = await getBoardWithColumns(req.params.boardId);
 
@@ -45,7 +49,7 @@ router.get('/:boardId', async (req, res) => {
     }, null, 2);
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-7',
+      model: MODEL,
       max_tokens: 1024,
       messages: [
         {
@@ -86,7 +90,8 @@ ${boardContext}`,
 
     res.json({ recommendations });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -1,4 +1,4 @@
-const { query } = require('../index');
+const { query, pool } = require('../index');
 
 const getBoardsByUser = (userId) =>
   query(
@@ -10,16 +10,26 @@ const getBoardsByUser = (userId) =>
   );
 
 const createBoard = async (name, ownerId) => {
-  const result = await query(
-    'INSERT INTO boards (name, owner_id) VALUES ($1, $2) RETURNING *',
-    [name, ownerId]
-  );
-  const board = result.rows[0];
-  await query(
-    'INSERT INTO board_members (board_id, user_id, role) VALUES ($1, $2, $3)',
-    [board.id, ownerId, 'owner']
-  );
-  return result;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await client.query(
+      'INSERT INTO boards (name, owner_id) VALUES ($1, $2) RETURNING *',
+      [name, ownerId]
+    );
+    const board = result.rows[0];
+    await client.query(
+      'INSERT INTO board_members (board_id, user_id, role) VALUES ($1, $2, $3)',
+      [board.id, ownerId, 'owner']
+    );
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
 const getBoardById = (boardId) =>

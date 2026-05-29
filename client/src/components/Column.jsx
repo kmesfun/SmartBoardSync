@@ -9,6 +9,7 @@ export default function Column({ column, lockedCards = {} }) {
   const addCard = useBoardStore(s => s.addCard);
   const [adding, setAdding] = useState(false);
   const [cardTitle, setCardTitle] = useState('');
+  const [addError, setAddError] = useState(false);
 
   const { setNodeRef } = useDroppable({ id: column.id });
 
@@ -23,7 +24,10 @@ export default function Column({ column, lockedCards = {} }) {
       if (typeof addCard === 'function') addCard(res.data);
       setCardTitle('');
       setAdding(false);
-    } catch {}
+      setAddError(false);
+    } catch {
+      setAddError(true);
+    }
   };
 
   return (
@@ -69,8 +73,9 @@ export default function Column({ column, lockedCards = {} }) {
             />
             <div className="flex gap-2">
               <button type="submit" className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Add</button>
-              <button type="button" onClick={() => setAdding(false)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+              <button type="button" onClick={() => { setAdding(false); setAddError(false); }} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
             </div>
+            {addError && <p className="text-xs text-red-500 mt-1">Failed to add card — please try again</p>}
           </form>
         ) : (
           <div className="flex items-center justify-between">

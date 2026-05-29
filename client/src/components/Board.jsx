@@ -18,6 +18,8 @@ export function Board({ boardId }) {
   const handleDragStart = ({ active }) => {
     const card = (columns || []).flatMap(c => c.cards || []).find(c => c.id === active.id);
     setActiveCard(card || null);
+    // Emit lock here (drag-start) rather than on mousedown to avoid locking on clicks/right-clicks
+    try { getSocket().emit('card:lock', { cardId: active.id }); } catch {}
   };
 
   const handleDragEnd = async ({ active, over }) => {
@@ -63,7 +65,9 @@ export function Board({ boardId }) {
 
     try {
       const socket = getSocket();
-      socket.emit('card:move', { cardId, columnId: targetColumnId, position, timestamp: Date.now() });
+      // Send the card's last-known updated_at so the server can detect conflicts
+      const cardState = allCards.find(c => c.id === cardId);
+      socket.emit('card:move', { cardId, columnId: targetColumnId, position, clientUpdatedAt: cardState?.updated_at });
       socket.emit('card:unlock', { cardId });
     } catch {}
   };
