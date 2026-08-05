@@ -77,6 +77,28 @@ const useBoardStore = create((set, get) => ({
       })),
     }));
   },
+
+  addCardPr: (cardId, pr) => {
+    set((state) => ({
+      columns: state.columns.map((col) => ({
+        ...col,
+        cards: col.cards.map((c) =>
+          c.id === cardId ? { ...c, prs: [...(c.prs || []), pr] } : c
+        ),
+      })),
+    }));
+  },
+
+  removeCardPr: (cardId, prId) => {
+    set((state) => ({
+      columns: state.columns.map((col) => ({
+        ...col,
+        cards: col.cards.map((c) =>
+          c.id === cardId ? { ...c, prs: (c.prs || []).filter((p) => p.id !== prId) } : c
+        ),
+      })),
+    }));
+  },
 }));
 
 export { useBoardStore };

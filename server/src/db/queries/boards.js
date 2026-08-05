@@ -48,7 +48,17 @@ const getBoardWithColumns = async (boardId) => {
          'locked_at', ca.locked_at,
          'column_id', ca.column_id,
          'updated_at', ca.updated_at,
-         'created_at', ca.created_at
+         'created_at', ca.created_at,
+         'prs', (
+           SELECT COALESCE(json_agg(
+             json_build_object(
+               'id', p.id, 'pr_url', p.pr_url,
+               'pr_number', p.pr_number, 'repo', p.repo,
+               'pr_title', p.pr_title
+             ) ORDER BY p.created_at
+           ), '[]'::json)
+           FROM card_prs p WHERE p.card_id = ca.id
+         )
        ) ORDER BY ca.position
      ) FILTER (WHERE ca.id IS NOT NULL) AS cards
      FROM columns c

@@ -52,7 +52,19 @@ CREATE TABLE IF NOT EXISTS activity_log (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS card_prs (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id     UUID NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+  pr_url      TEXT NOT NULL,
+  pr_number   INTEGER,
+  repo        TEXT,
+  pr_title    TEXT DEFAULT '',
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(card_id, pr_url)
+);
+
 -- Indexes
+CREATE INDEX IF NOT EXISTS idx_card_prs_card_id  ON card_prs(card_id);
 CREATE INDEX IF NOT EXISTS idx_cards_column_id   ON cards(column_id);
 CREATE INDEX IF NOT EXISTS idx_cards_locked_by   ON cards(locked_by);
 CREATE INDEX IF NOT EXISTS idx_columns_board_id  ON columns(board_id);

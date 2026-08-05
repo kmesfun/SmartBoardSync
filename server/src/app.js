@@ -14,6 +14,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/boards', require('./routes/boards'));
 app.use('/api/columns', require('./routes/columns'));
 app.use('/api/cards', require('./routes/cards'));
+app.use('/api/cards/:cardId/prs', require('./routes/prs'));
 app.use('/api/activity', require('./routes/activity'));
 app.use('/api/recommendations', require('./routes/recommendations'));
 
